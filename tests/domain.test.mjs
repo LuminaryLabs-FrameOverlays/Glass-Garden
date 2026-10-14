@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {makeProject,LIMITS,validateProject} from '../kits/glass-garden-domain-kit/contracts.js';
+import {createPlant,plantForm,editProject} from '../kits/glass-garden-domain-kit/plants.js';
+import {gardenPixels} from '../kits/glass-garden-domain-kit/texture.js';
+test('seed and settings produce deterministic but distinct bounded plant forms',()=>{const a=plantForm(123,'upright',3),b=plantForm(123,'upright',3);assert.deepEqual(a,b);assert.notDeepEqual(a,plantForm(124,'upright',3));assert.notDeepEqual(a,plantForm(123,'rosette',3));assert.equal(a.leaves.length,15);assert.throws(()=>plantForm(-1,'upright',1),/Seed/);assert.throws(()=>plantForm(1,'unknown',1),/silhouette/);});
+test('growth advances one simulated stage and rejects past the bounded final stage',()=>{let p=makeProject('garden');p=editProject(p,'add',{id:'fern',seed:7});for(let i=0;i<5;i++)p=editProject(p,'grow',{id:'fern'});assert.equal(p.plants[0].growth,5);assert.throws(()=>editProject(p,'grow',{id:'fern'}),/final stage/);});
+test('collection limits and malformed project data fail before mutation',()=>{let p=makeProject('garden');for(let i=0;i<LIMITS.plants;i++)p=editProject(p,'add',{id:`plant-${i}`,seed:i});assert.throws(()=>editProject(p,'add'),/at most 24/);assert.throws(()=>validateProject({...p,plants:[{...p.plants[0],seed:4294967296}]}),/Seed/);assert.throws(()=>validateProject({...p,extra:true}),/Unexpected/);});
+test('arrangement changes visible pixels through bounded coordinates',()=>{const p=editProject(makeProject('garden'),'add',{id:'p1',seed:1});const first=gardenPixels(p);const arranged=editProject(p,'arrange',{id:'p1',x:0.9,y:0.2});const next=gardenPixels(arranged);assert.equal(first.width,480);assert.equal(first.height,320);assert.notDeepEqual(first.data,next.data);assert.throws(()=>editProject(p,'arrange',{id:'p1',x:2,y:0}),/Horizontal/);});

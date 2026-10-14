@@ -1,0 +1,7 @@
+# Saved collections and recovery
+
+The `glass-garden.project/1` format is bounded to 24 plants, names up to 80 characters, unsigned 32-bit seeds, three silhouettes, three pot finishes, five growth increments and normalized arrangement coordinates. All exact keys and types are checked before import, replacement or write. Texture output is derived and is not serialized.
+
+FrameFactory wraps a project in its `framefactory.saved-state/1` and `framefactory.state/1` envelopes. The local storage adapter validates the full envelope and project ID against its storage key. Each write uses a unique temporary file followed by atomic rename, serializes concurrent writes, and enforces a 100-project limit and 1 MiB data limit. A failed write returns an error and does not mark the current session clean. Corrupt files are left untouched and shown as unreadable library entries. This adapter does not claim fsync durability.
+
+Save records the exact project snapshot. Reopening reads the saved project into a newly created session. New, import and duplicate start a fresh session history; duplicate gets a new identity and remains unsaved. Undo/redo use FrameFactory's bounded history Kit. Each browser tab receives an isolated FrameFactory runtime/provider; there is no cross-tab live synchronization. A new session does not inherit unsaved work from another. The server closes explicit sessions, tears down idle sessions after 30 minutes and caps active sessions at 16. No background timer advances plants.

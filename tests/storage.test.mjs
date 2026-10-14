@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,readFile,writeFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createFileStorage} from '../src/storage.js';
+import {makeProject} from '../kits/glass-garden-domain-kit/contracts.js';
+const envelope=project=>({schema:'framefactory.saved-state/1',frameId:'glass-garden',state:{schema:'framefactory.state/1',revision:0,values:{project}}});
+test('atomic save reopens through a fresh storage adapter and preserves old bytes after a failed oversize save',async t=>{const root=await mkdtemp(join(tmpdir(),'garden-store-'));t.after(()=>rm(root,{recursive:true,force:true}));const a=createFileStorage(root),p=makeProject('garden-1','First');await a.write('glass-garden:garden-1',envelope(p));const target=join(root,'garden-1.json'),old=await readFile(target,'utf8');assert.deepEqual((await createFileStorage(root).read('glass-garden:garden-1')).state.values.project,p);await assert.rejects(a.write('glass-garden:garden-1',{...envelope(p),state:{...envelope(p).state,values:{project:{...p,name:'x'.repeat(2000000)}}}}));assert.equal(await readFile(target,'utf8'),old);});
+test('malformed save is rejected, corrupt files remain listed for recovery',async t=>{const root=await mkdtemp(join(tmpdir(),'garden-corrupt-'));t.after(()=>rm(root,{recursive:true,force:true}));const s=createFileStorage(root);await writeFile(join(root,'bad.json'),'{not json');assert.equal((await s.list())[0].corrupt,true);await assert.rejects(s.write('garden:bad',{}));assert.equal(await readFile(join(root,'bad.json'),'utf8'),'{not json');});

@@ -1,0 +1,4 @@
+import {mkdir,cp,readFile,writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {loadFrameFactory,PIN} from '../adapters/framefactory.js';
+await loadFrameFactory();await mkdir('dist',{recursive:true});for(const f of ['web','src','kits','adapters','frame','scripts','tests','README.md','AGENTS.md','.agent','docs','package.json'])await cp(f,'dist/'+f,{recursive:true,force:true});const receipt={status:'PASS',kind:'runnable-source-package',version:'0.1.0',frameFactoryCommit:PIN,dependencyCheckoutRequired:true,externalPackages:[],installerProduced:false,nativeBinaryProduced:false,releasePublished:false,sourceHash:createHash('sha256').update(await readFile('package.json')).digest('hex')};await writeFile('dist/build-receipt.json',JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify(receipt,null,2));

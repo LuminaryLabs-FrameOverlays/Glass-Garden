@@ -1,0 +1,15 @@
+{
+  "schema": "framefactory.frame/1",
+  "id": "glass-garden",
+  "name": "Glass Garden",
+  "version": "0.1.0",
+  "surfaces": [{ "id": "surface.garden", "type": "quad", "width": 480, "height": 320, "widthMeters": 0.46 }],
+  "placement": { "origin": "world", "position": [0, 1.4, -1], "orientation": [0, 0, 0, 1] },
+  "visibility": { "mode": "always" },
+  "capabilities": ["capability.input"],
+  "features": ["interaction.pointer", "state.persistence"],
+  "kits": ["frame-action-kit", "frame-history-kit"],
+  "targets": ["steamvr-windows"],
+  "persistence": { "mode": "local" },
+  "provenance": { "kind": "application", "stage": "local-software", "evidence": "browser-and-mock-only", "proposal": "OV-064" }
+}

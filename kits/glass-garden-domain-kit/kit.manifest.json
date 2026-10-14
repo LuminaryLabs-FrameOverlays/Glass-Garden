@@ -1,0 +1,10 @@
+{
+  "schema": "glass-garden.domain-kit/1",
+  "id": "glass-garden-domain-kit",
+  "version": "0.1.0",
+  "domainPath": "n:frame:glass-garden",
+  "execution": "product-owned-services",
+  "composition": "FrameFactory trusted runtime plugin; not registered in shared KIT_REGISTRY",
+  "state": "glass-garden.project/1",
+  "modules": ["contracts.js", "plants.js", "texture.js"]
+}

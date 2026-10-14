@@ -1,0 +1,22 @@
+import {readFile,readdir} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+import {resolve} from 'node:path';
+import {loadFrameFactory,PIN} from '../adapters/framefactory.js';
+const root=new URL('../',import.meta.url);
+const factory=await loadFrameFactory();
+for(const f of ['README.md','AGENTS.md','.agent/start-here.md','.agent/build-journal.md','docs/architecture.md','docs/storage.md','docs/validation.md'])await readFile(new URL(f,root));
+const [session,server,storage,ui,adapter]=await Promise.all(['src/session.js','src/server.js','src/storage.js','web/app.js','adapters/framefactory.js'].map(f=>readFile(new URL(f,root),'utf8')));
+const requires=(source,pattern,label)=>{if(!pattern.test(source))throw new Error(`Source audit failed: ${label}`);};
+requires(adapter,/createFrameRuntime/,'real FrameFactory runtime import missing');
+requires(adapter,/adapters\/mock\/index\.mjs/,'mock provider import missing');
+requires(session,/createFrameRuntime\(\{frame:factory\.frame/,'plugin is not composed through FrameFactory');
+requires(session,/renderers:\{'surface\.garden':\(\)=>gardenPixels\(project\(\)\)\}/,'garden renderer is not registered on the Factory surface');
+requires(server,/provider\.inspect\(\),pixels=entry\.session\.pixels\(\)/,'provider texture source missing from proof route');
+requires(ui,/proof\.texture\.rgba/,'browser does not consume provider texture bytes');
+requires(ui,/beforeunload/,'unsaved work close guard missing');
+requires(server,/setInterval[\s\S]*?clearInterval/,'session cleanup timer is not cleared');
+requires(storage,/writeFile\(temp[\s\S]*?rename\(temp,target\)/,'atomic save replacement missing');
+requires(storage,/Unreadable collection/,'corrupt saves are not reported');
+async function walk(d){for(const ent of await readdir(d,{withFileTypes:true})){const p=resolve(d,ent.name);if(ent.isDirectory())await walk(p);else if(/\.(?:js|mjs)$/.test(p))execFileSync(process.execPath,['--check',p],{stdio:'pipe'});}}
+for(const d of ['adapters','src','kits','scripts','tests','web'])await walk(new URL('../'+d,import.meta.url).pathname);
+console.log(JSON.stringify({status:'PASS',frameValid:true,sourceSyntax:'PASS',sourceAudit:'PASS',frameFactoryCommit:PIN,frameId:factory.frame.id,docsPresent:true,applicationRuntimeStarted:false,visualQualityVerified:false},null,2));

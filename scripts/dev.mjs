@@ -1,0 +1,2 @@
+import {startServer} from '../src/server.js';
+const port=Number(process.env.PORT??4177);if(!Number.isInteger(port)||port<1||port>65535)throw new Error('PORT must be an integer between 1 and 65535.');const app=await startServer({port});console.log(`Glass Garden listening at ${app.url}`);let closing=false;const close=async()=>{if(closing)return;closing=true;await app.close();};process.once('SIGINT',close);process.once('SIGTERM',close);

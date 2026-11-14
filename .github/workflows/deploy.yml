@@ -1,64 +1,41 @@
 name: Glass Garden — sandbox inputs and deployment
 
-# Preparation phase: download dependencies for the isolated sandbox.
-# This revision deliberately does not publish a site. Deployment is added only
-# after the application has passed source-bound local validation.
+# Dependency transport only. Public deployment remains gated by local validation.
 on:
   push:
     branches: [main]
     paths: ['.github/workflows/deploy.yml']
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
   group: glass-garden-preparation
   cancel-in-progress: false
-
 jobs:
-  sandbox-inputs:
+  nexus-build-dependencies:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
-      - name: Read the application source
-        uses: actions/checkout@v4
-        with:
-          path: Glass-Garden
-          persist-credentials: false
-      - name: Read the pinned public NexusEngine source
-        uses: actions/checkout@v4
-        with:
-          repository: LuminaryLabs-Dev/NexusEngine
-          ref: f6b6731ce06a4f1dd7f40b23ae795af04b706c49
-          path: NexusEngine
-          persist-credentials: false
-      - name: Set up the sandbox Node version
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22.16.0'
-      - name: Resolve and lock application dependencies
+      - name: Resolve the source-declared compiler dependency
         shell: bash
         run: |
           set -euo pipefail
-          mkdir sandbox-dependencies
-          cd sandbox-dependencies
-          cat > package.json <<'JSON'
-          {"name":"glass-garden-sandbox-dependencies","version":"0.2.0","private":true,"type":"module","dependencies":{"next":"16","react":"19","react-dom":"19","three":"0.180.0","esbuild":"0.25.10","gltf-validator":"2.0.0-dev.3.10","playwright":"1.55.1"}}
-          JSON
+          mkdir nexus-build-dependencies
+          cd nexus-build-dependencies
+          printf '%s\n' '{"private":true,"dependencies":{"@typescript/typescript6":"6.0.2"}}' > package.json
           npm install --ignore-scripts --no-audit --no-fund
-          npm ls --depth=0 --json > dependency-versions.json
+          npm ls --depth=0 --json > versions.json
           cd ..
-          printf '%s\n' 'f6b6731ce06a4f1dd7f40b23ae795af04b706c49' > NexusEngine/SOURCE_COMMIT
-          git -C Glass-Garden rev-parse HEAD > Glass-Garden/SOURCE_COMMIT
-          tar --exclude='*/.git' -czf glass-garden-sandbox-inputs.tar.gz Glass-Garden NexusEngine sandbox-dependencies
-          sha256sum glass-garden-sandbox-inputs.tar.gz > glass-garden-sandbox-inputs.sha256
-      - name: Deliver inputs to the sandbox
-        uses: actions/upload-artifact@v4
+          tar -czf nexus-build-dependencies.tar.gz nexus-build-dependencies
+          sha256sum nexus-build-dependencies.tar.gz > nexus-build-dependencies.sha256
+      - uses: actions/upload-artifact@v4
         with:
-          name: glass-garden-sandbox-inputs
+          name: nexus-build-dependencies
           path: |
-            glass-garden-sandbox-inputs.tar.gz
-            glass-garden-sandbox-inputs.sha256
+            nexus-build-dependencies.tar.gz
+            nexus-build-dependencies.sha256
           retention-days: 7
           compression-level: 0
